@@ -1,4 +1,3 @@
-# GROUP 3 [20110002, 20110405, 20110420] [Nguyen Xuan Loc, Ha Tan Tho, Nguyen Huynh Thanh Toan]
 import os
 import pickle
 import numpy as np
@@ -10,6 +9,9 @@ from firebase_admin import credentials
 from firebase_admin import db
 from firebase_admin import storage
 import numpy as np
+from PIL import Image
+import requests
+from io import BytesIO
 from datetime import datetime
 
 credential = credentials.Certificate("serviceAccountKey.json")
@@ -20,9 +22,9 @@ firebase_admin.initialize_app(credential, {
 bucket = storage.bucket()
 # Creating an instance of video capture for capturing video
 # cap = cv2.VideoCapture(1) # DroidCam
-cap = cv2.VideoCapture(0)  # Camera Laptop
-cap.set(3, 640)
-cap.set(4, 480)
+# cap = cv2.VideoCapture(0)  # Camera Laptop
+# cap.set(3, 640)
+# cap.set(4, 480)
 background = cv2.imread('Resources/background.png')
 # Importing the mode images into a list
 folderModePath = 'Resources/Modes'
@@ -44,7 +46,15 @@ id = -1
 imgStd = []
 
 while True:
-    success, image = cap.read()
+
+    # Read ESP32 Camera
+    response = requests.get("http://10.0.30.224/cam-hi.jpg")
+    image = np.array(Image.open(BytesIO(response.content)))
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    #Read laptop camera
+    # success, image = cap.read()
+
     imageSize = cv2.resize(image, (0, 0), None, 0.25, 0.25)  # Resize image
     imageSize = cv2.cvtColor(imageSize, cv2.COLOR_BGR2RGB)  # Converting image to RGB format
     faceCurFrame = face_recognition.face_locations(imageSize)
@@ -69,7 +79,7 @@ while True:
                 id = studentIds[matchIndex]
                 if counter == 0:
                     cvzone.putTextRect(background, "Loading", (275, 400))
-                    cv2.imshow("Face Attendance", background)
+                    # cv2.imshow("Face Attendance", background)
                     cv2.waitKey(1)
                     counter = 1
                     modeType = 1
@@ -84,14 +94,14 @@ while True:
                 array = np.frombuffer(blob.download_as_string(), np.uint8)
                 imgStd = cv2.imdecode(array, cv2.COLOR_BGRA2BGR)
                 # Update data of attendance
-                datetimeObject = datetime.strptime(stdInfo['last_attendance_time'], "%Y-%m-%d %H:%M:%S")
+                datetimeObject = datetime.strptime(stdInfo['last_opening_door_time'], "%Y-%m-%d %H:%M:%S")
                 secondsElapsed = (datetime.now() - datetimeObject).total_seconds()
                 print(secondsElapsed)
                 if secondsElapsed > 20:  #30
                     ref = db.reference(f'Students/{id}')
-                    stdInfo['total_attendance'] += 1
-                    ref.child('total_attendance').set(stdInfo['total_attendance'])
-                    ref.child('last_attendance_time').set(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                    stdInfo['total_open_door'] += 1
+                    ref.child('total_open_door').set(stdInfo['total_open_door'])
+                    ref.child('last_opening_door_time').set(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 else:
                     modeType = 3
                     counter = 0
@@ -101,12 +111,11 @@ while True:
                     modeType = 2
                 background[44:44 + 633, 808:808 + 414] = imgModeList[modeType]
                 if counter <= 10:
-                    cv2.putText(background, str(stdInfo['total_attendance']), (861, 125), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
-                    cv2.putText(background, str(stdInfo['major']), (1006, 550), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+                    cv2.putText(background, str(stdInfo['total_open_door']), (861, 125), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
+                    cv2.putText(background, str(stdInfo['family_role']), (1006, 550), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
                     cv2.putText(background, str(id), (1006, 493), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-                    cv2.putText(background, str(stdInfo['standing']), (910, 625), cv2.FONT_HERSHEY_COMPLEX, 0.6, (100, 100, 100), 1)
-                    cv2.putText(background, str(stdInfo['year']), (1025, 625), cv2.FONT_HERSHEY_COMPLEX, 0.6, (100, 100, 100), 1)
-                    cv2.putText(background, str(stdInfo['starting_year']), (1125, 625), cv2.FONT_HERSHEY_COMPLEX, 0.6, (100, 100, 100), 1)
+                    cv2.putText(background, str(stdInfo['age']), (1025, 625), cv2.FONT_HERSHEY_COMPLEX, 0.6, (100, 100, 100), 1)
+                    cv2.putText(background, str(stdInfo['job_status']), (1125, 625), cv2.FONT_HERSHEY_COMPLEX, 0.6, (100, 100, 100), 1)
                     (w, h), _ = cv2.getTextSize(stdInfo['name'], cv2.FONT_HERSHEY_COMPLEX, 1, 1)
                     offset = (414 - w) // 2
                     cv2.putText(background, str(stdInfo['name']), (808 + offset, 445), cv2.FONT_HERSHEY_COMPLEX, 1, (50, 50, 50), 1)
@@ -121,5 +130,5 @@ while True:
     else:
         modeType = 0
         counter = 0
-    cv2.imshow("Face Attendance", background)
+    cv2.imshow("Face Recognition", background)
     cv2.waitKey(100)

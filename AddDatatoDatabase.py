@@ -10,7 +10,7 @@ firebase_admin.initialize_app(credential, {
 })
 
 databaseRef = db.reference('Students')
-with open('./Data/data.json', 'r') as f:
+with open('./Data/data.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 # print(data)
 # Insert data - Student to Firebase Realtime Database
