@@ -20,17 +20,16 @@ ref = db.reference('Students')
 data = ref.get()
 
 # Create a standard item model and populate data
-model = QStandardItemModel(len(data), 7)
-model.setHorizontalHeaderLabels(["ID", "Name", "Major", "Starting Year", "Total Attendance", "Standing", "Year", "Last Attendance Time"])
+model = QStandardItemModel(len(data), 6)
+model.setHorizontalHeaderLabels(["ID", "Name", "Age", "Family Role", "Job Status", "Total Open Door", "Last Opening Door Time"])
 for i, key in enumerate(data):
     model.setItem(i, 0, QStandardItem(key))
     model.setItem(i, 1, QStandardItem(data[key]['name']))
-    model.setItem(i, 2, QStandardItem(data[key]['major']))
-    model.setItem(i, 3, QStandardItem(str(data[key]['starting_year'])))
-    model.setItem(i, 4, QStandardItem(str(data[key]['total_attendance'])))
-    model.setItem(i, 5, QStandardItem(data[key]['standing']))
-    model.setItem(i, 6, QStandardItem(str(data[key]['year'])))
-    model.setItem(i, 7, QStandardItem(str(data[key]['last_attendance_time'])))
+    model.setItem(i, 2, QStandardItem(data[key]['age']))
+    model.setItem(i, 3, QStandardItem(str(data[key]['family_role'])))
+    model.setItem(i, 4, QStandardItem(str(data[key]['job_status'])))
+    model.setItem(i, 5, QStandardItem(data[key]['total_open_door']))
+    model.setItem(i, 6, QStandardItem(str(data[key]['last_opening_door_time'])))
 
 # Create a table view and set model
 table_view = QTableView()

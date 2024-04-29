@@ -1,4 +1,3 @@
-# GROUP 3 [20110002, 20110405, 20110420] [Nguyen Xuan Loc, Ha Tan Tho, Nguyen Huynh Thanh Toan]
 import os
 import pickle
 
