@@ -172,7 +172,7 @@ class FaceRecognitionSystem:
             
             if self.recognize_safeface_status == True:
                     self.background_recognize = cv2.imread('Resources/background.png')
-                    self.unlock_door()
+                    # self.unlock_door()
                     cv2.putText(self.background_recognize, str(stdInfo['total_open_door']), (861, 125), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
                     cv2.putText(self.background_recognize, str(stdInfo['family_role']), (1006, 550), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
                     cv2.putText(self.background_recognize, str(id), (1006, 493), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
