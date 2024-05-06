@@ -3,9 +3,9 @@
 #include <WiFi.h>
 #include <esp32cam.h>
  
-const char* WIFI_SSID = "KARAOKE THAY NON";
-const char* WIFI_PASS = "999999999";
- 
+const char* WIFI_SSID = "HCMUTE-FIT";
+const char* WIFI_PASS = "1234567890";
+const int RELAY_PIN = 15;
 WebServer server(80);
  
  
@@ -20,8 +20,8 @@ void serveJpg()
     server.send(503, "", "");
     return;
   }
-  Serial.printf("CAPTURE OK %dx%d %db\n", frame->getWidth(), frame->getHeight(),
-                static_cast<int>(frame->size()));
+  // Serial.printf("CAPTURE OK %dx%d %db\n", frame->getWidth(), frame->getHeight(),
+  //               static_cast<int>(frame->size()));
  
   server.setContentLength(frame->size());
   server.send(200, "image/jpeg");
@@ -54,8 +54,13 @@ void handleJpgMid()
 }
  
  
-void  setup(){
+void setup(){
   Serial.begin(115200);
+  pinMode(RELAY_PIN, OUTPUT); // Set the relay pin as an output
+  digitalWrite(RELAY_PIN, HIGH); // Ensure relay is off initially
+  pinMode(33, OUTPUT); // Set the relay pin as an output
+  digitalWrite(33, LOW); // Ensure relay is off initially
+
   Serial.println();
   {
     using namespace esp32cam;
@@ -83,6 +88,14 @@ void  setup(){
   server.on("/cam-lo.jpg", handleJpgLo);
   server.on("/cam-hi.jpg", handleJpgHi);
   server.on("/cam-mid.jpg", handleJpgMid);
+  server.on("/unlock", []() {
+    digitalWrite(33, HIGH); // Ensure relay is off initially
+    digitalWrite(RELAY_PIN, LOW);  // Assuming relay is active-high
+    delay(5000);  // Keep the door unlocked for 5 seconds
+    digitalWrite(RELAY_PIN, HIGH);
+    digitalWrite(33, LOW); // Ensure relay is off initially
+    server.send(200, "text/plain", "Door unlocked");
+  });
  
   server.begin();
 }

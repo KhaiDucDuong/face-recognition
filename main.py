@@ -30,7 +30,7 @@ class FaceRecognitionSystem:
             'storageBucket': "facialrecognitionsystem-3c1b7.appspot.com"
         })
         self.bucket = storage.bucket()
-        
+        self.esp_ip = '172.16.30.86'
         # Initialize Video Capture labtop
         self.cap = cv2.VideoCapture(0)  # Camera Laptop
         self.cap.set(3, 640)
@@ -40,7 +40,7 @@ class FaceRecognitionSystem:
         self.response = None
         self.image_camara = None
         self.image = None
-        
+                            
         # Load background image
         self.background = cv2.imread('Resources/background.png')
         self.background_recognize = cv2.imread('Resources/background.png')
@@ -172,6 +172,7 @@ class FaceRecognitionSystem:
             
             if self.recognize_safeface_status == True:
                     self.background_recognize = cv2.imread('Resources/background.png')
+                    self.unlock_door()
                     cv2.putText(self.background_recognize, str(stdInfo['total_open_door']), (861, 125), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
                     cv2.putText(self.background_recognize, str(stdInfo['family_role']), (1006, 550), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
                     cv2.putText(self.background_recognize, str(id), (1006, 493), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
@@ -213,7 +214,7 @@ class FaceRecognitionSystem:
                     self.background = cvzone.cornerRect(self.background, bbox, rt=0)
                     time_detect = datetime.now()
                     closest_distance = faceDis[matchIndex]
-                    if matches[matchIndex] and closest_distance < 0.38:                       
+                    if matches[matchIndex] and closest_distance < 0.35:                       
                         self.id = self.studentIds[matchIndex]
                         self.recognize_safeface_status = True
                         self.counter += 1
@@ -224,7 +225,7 @@ class FaceRecognitionSystem:
                     print("Timewarring", Timewarring)
                     if closest_distance > 0.5 and Timewarring > 5:
                         self.waring += 1
-                        print("Warring" + str(self.waring))
+                        print("Warring" + str(self.waring))             
             else:
                 self.face_detected_on_cammara = False
                 if self.before_id != self.id:
@@ -234,14 +235,22 @@ class FaceRecognitionSystem:
     def warring_notice(self):
         if self.waring > 10:
             print("Warring and send message to user")
-    
+
+    def unlock_door(self):
+        # Replace with the actual IP address of the ESP32-CAM
+        try:
+            requests.get(f'http://{self.esp_ip}/unlock')
+            print("Door unlock command sent.")                                                                                            
+        except requests.exceptions.RequestException as e:
+            print("Failed to send unlock command:", e)  
+        
     def read_camera_data(self):
         while True:
-            # #labtop camara8
+            # #labtop camara
             self.success, self.imgdetect = self.cap.read() 
             
             # ESP32Camera   
-            # self.response = requests.get("http://192.168.1.10/cam-hi.jpg")
+            # self.response = requests.get(f"http://{self.esp_ip}/cam-hi.jpg")
             # self.imgdetect = np.array(Image.open(BytesIO(self.response.content)))
             # self.imgdetect = cv2.cvtColor(self.imgdetect, cv2.COLOR_RGB2BGR)
             # self.success = True
@@ -254,7 +263,7 @@ class FaceRecognitionSystem:
         while True:
             if self.success:
                 # self.detect_face()
-                if self.counter == 20 and self.recognize_safeface_status == True and self.face_detected_on_cammara == True:
+                if self.counter == 10 and self.recognize_safeface_status == True and self.face_detected_on_cammara == True:
                     self.recognize_safeface()
                 self.warring_notice() 
                 cv2.imshow("Face Recognition", self.background)
