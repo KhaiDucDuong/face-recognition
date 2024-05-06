@@ -11,6 +11,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 from firebase_admin import storage
 from datetime import datetime
+from multiprocessing import Process, Queue
 import requests
 import json
 import smtplib
@@ -19,7 +20,6 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from io import BytesIO
 from PIL import Image
-
 
 class FaceRecognitionSystem:
     def __init__(self):
@@ -149,8 +149,7 @@ class FaceRecognitionSystem:
             
             self.imgdetect = img_adjusted
             # cv2.imshow("Image", self.imgdetect)
-        
-    
+         
     def recognize_safeface(self):
         stdInfo = db.reference(f'Students/{self.id}').get()
         print(stdInfo)
@@ -191,46 +190,85 @@ class FaceRecognitionSystem:
                     self.background_recognize[44:44 + 633, 808:808 + 414] = self.imgModeList[self.modeType]   
 
     def detect_face(self):    
-        if self.success:
-            self.detect_face_status = True
-            imageSize = cv2.resize(self.imgdetect, (0, 0), None, 0.25, 0.25)
-            imageSize = cv2.cvtColor(imageSize, cv2.COLOR_BGR2RGB)
-            faceCurFrame = face_recognition.face_locations(imageSize)
-            encodeCurFrame = face_recognition.face_encodings(imageSize, faceCurFrame)
-            self.background[162:162 + 480, 55:55 + 640] = self.imgdetect
-            self.background[44:44 + 633, 808:808 + 414] = self.imgModeList[self.modeType]
-            if faceCurFrame:
-                self.face_detected_on_cammara = True
-                for encodeFace, faceLoc in zip(encodeCurFrame, faceCurFrame):
-                    matches = face_recognition.compare_faces(self.encodeListKnown, encodeFace)
-                    faceDis = face_recognition.face_distance(self.encodeListKnown, encodeFace)
-                    print("matches", matches)
-                    print("faceDis", faceDis)
-                    matchIndex = np.argmin(faceDis)
-                    print("faceDis Match",faceDis[matchIndex])
-                    y1, x2, y2, x1 = faceLoc
-                    y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
-                    bbox = 55 + x1, 162 + y1, x2 - x1, y2 - y1
-                    self.background = cvzone.cornerRect(self.background, bbox, rt=0)
-                    time_detect = datetime.now()
-                    closest_distance = faceDis[matchIndex]
-                    if matches[matchIndex] and closest_distance < 0.35:                       
-                        self.id = self.studentIds[matchIndex]
-                        self.recognize_safeface_status = True
-                        self.counter += 1
-                        print("Counter" + str(self.counter))
+        # if self.success:
+        #     self.detect_face_status = True
+        #     imageSize = cv2.resize(self.imgdetect, (0, 0), None, 0.25, 0.25)
+        #     imageSize = cv2.cvtColor(imageSize, cv2.COLOR_BGR2RGB)
+        #     faceCurFrame = face_recognition.face_locations(imageSize)
+        #     encodeCurFrame = face_recognition.face_encodings(imageSize, faceCurFrame)
+        #     self.background[162:162 + 480, 55:55 + 640] = self.imgdetect
+        #     self.background[44:44 + 633, 808:808 + 414] = self.imgModeList[self.modeType]
+        #     if faceCurFrame:
+        #         self.face_detected_on_cammara = True
+        #         for encodeFace, faceLoc in zip(encodeCurFrame, faceCurFrame):
+        #             matches = face_recognition.compare_faces(self.encodeListKnown, encodeFace)
+        #             faceDis = face_recognition.face_distance(self.encodeListKnown, encodeFace)
+        #             print("matches", matches)
+        #             print("faceDis", faceDis)
+        #             matchIndex = np.argmin(faceDis)
+        #             print("faceDis Match",faceDis[matchIndex])
+        #             y1, x2, y2, x1 = faceLoc
+        #             y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
+        #             bbox = 55 + x1, 162 + y1, x2 - x1, y2 - y1
+        #             self.background = cvzone.cornerRect(self.background, bbox, rt=0)
+        #             time_detect = datetime.now()
+        #             closest_distance = faceDis[matchIndex]
+        #             if matches[matchIndex] and closest_distance < 0.35:                       
+        #                 self.id = self.studentIds[matchIndex]
+        #                 self.recognize_safeface_status = True
+        #                 self.counter += 1
+        #                 print("Counter" + str(self.counter))
                         
-                    Timewarring = (datetime.now() - time_detect).total_seconds()
-                    print("closest_distance", closest_distance)
-                    print("Timewarring", Timewarring)
-                    if closest_distance > 0.5 and Timewarring > 5:
-                        self.waring += 1
-                        print("Warring" + str(self.waring))             
-            else:
-                self.face_detected_on_cammara = False
-                if self.before_id != self.id:
-                            self.face_same_person = False
-                            self.before_id = self.id
+        #             Timewarring = (datetime.now() - time_detect).total_seconds()
+        #             print("closest_distance", closest_distance)
+        #             print("Timewarring", Timewarring)
+        #             if closest_distance > 0.5 and Timewarring > 5:
+        #                 self.waring += 1
+        #                 print("Warring" + str(self.waring))             
+        #     else:
+        #         self.face_detected_on_cammara = False
+        #         if self.before_id != self.id:
+        #                     self.face_same_person = False
+        #                     self.before_id = self.id
+        self.detect_face_status = True
+        imageSize = cv2.resize(self.imgdetect, (0, 0), None, 0.25, 0.25)
+        imageSize = cv2.cvtColor(imageSize, cv2.COLOR_BGR2RGB)
+        faceCurFrame = face_recognition.face_locations(imageSize)
+        encodeCurFrame = face_recognition.face_encodings(imageSize, faceCurFrame)
+        self.background[162:162 + 480, 55:55 + 640] = self.imgdetect
+        self.background[44:44 + 633, 808:808 + 414] = self.imgModeList[self.modeType]
+        if faceCurFrame:
+            self.face_detected_on_cammara = True
+            for encodeFace, faceLoc in zip(encodeCurFrame, faceCurFrame):
+                matches = face_recognition.compare_faces(self.encodeListKnown, encodeFace)
+                faceDis = face_recognition.face_distance(self.encodeListKnown, encodeFace)
+                print("matches", matches)
+                print("faceDis", faceDis)
+                matchIndex = np.argmin(faceDis)
+                print("faceDis Match",faceDis[matchIndex])
+                y1, x2, y2, x1 = faceLoc
+                y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
+                bbox = 55 + x1, 162 + y1, x2 - x1, y2 - y1
+                self.background = cvzone.cornerRect(self.background, bbox, rt=0)
+                time_detect = datetime.now()
+                closest_distance = faceDis[matchIndex]
+                if matches[matchIndex] and closest_distance < 0.35:                       
+                    self.id = self.studentIds[matchIndex]
+                    self.recognize_safeface_status = True
+                    self.counter += 1
+                    print("Counter" + str(self.counter))
+                    
+                Timewarring = (datetime.now() - time_detect).total_seconds()
+                print("closest_distance", closest_distance)
+                print("Timewarring", Timewarring)
+                if closest_distance > 0.5 and Timewarring > 5:
+                    self.waring += 1
+                    print("Warring" + str(self.waring))             
+        else:
+            self.face_detected_on_cammara = False
+            if self.before_id != self.id:
+                        self.face_same_person = False
+                        self.before_id = self.id
                 
 
     def unlock_door(self):
@@ -252,19 +290,29 @@ class FaceRecognitionSystem:
             # self.imgdetect = cv2.cvtColor(self.imgdetect, cv2.COLOR_RGB2BGR)
             # self.success = True
             
-            self.img_process()
-            self.detect_face()   
+            # self.img_process()
+            # self.detect_face()   
             time.sleep(0.1)  # Add a small delay to avoid consuming too much CPU
 
-    def process_face_recognition(self):
-        while True:
-            if self.success:
-                # self.detect_face()
-                if self.counter == 10 and self.recognize_safeface_status == True and self.face_detected_on_cammara == True:
-                    self.recognize_safeface()
-                self.warring_notice() 
-                cv2.imshow("Face Recognition", self.background)
-                cv2.waitKey(100)# Adjust the delay time as needed
+    def process_face_recognition(self, frame):
+        # while True:
+        #     if self.success:
+        #         # self.detect_face()
+        #         self.img_process()
+        #         self.detect_face() 
+        #         if self.counter == 10 and self.recognize_safeface_status == True and self.face_detected_on_cammara == True:
+        #             self.recognize_safeface()
+        #         self.warring_notice() 
+        #         cv2.imshow("Face Recognition", self.background)
+        #         cv2.waitKey(100)# Adjust the delay time as needed
+        self.imgdetect = frame
+        self.img_process()
+        self.detect_face() 
+        if self.counter == 10 and self.recognize_safeface_status == True and self.face_detected_on_cammara == True:
+            self.recognize_safeface()
+        self.warring_notice() 
+        # cv2.imshow("Face Recognition", self.background)
+        # cv2.waitKey(100)# Adjust the delay time as needed
              
                 
 
@@ -300,8 +348,104 @@ class FaceRecognitionSystem:
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
+class Canny_Process(Process):
+    
+    def __init__(self,frame_queue,output_queue):
+        Process.__init__(self)
+        self.frame_queue = frame_queue
+        self.output_queue = output_queue
+        self.stop = False
+        #Initialize your face detectors here
+        #self.face_detector = FaceRecognitionSystem()
+        
+    def get_frame(self):
+        if not self.frame_queue.empty():
+            return True, self.frame_queue.get()
+        else:
+            return False, None
+
+    def stopProcess(self):
+        self.stop = True
+            
+    def canny_frame(self,frame):
+        # some intensive computation...
+        #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #edges = cv2.Canny(gray, 50, 100)
+        
+        #To simulate CPU Time
+        #############################
+        # for i in range(1000000):
+        #     x = 546*546
+        #     res = x/(i+1)
+        face_detector.process_face_recognition(frame)
+        #############################
+        'REPLACE WITH FACE DETECT CODE HERE'
+
+        if self.output_queue.full(): 
+            try:
+                self.output_queue.get_nowait()
+            except:
+                print("OUTPUT QUEUE IS EMPTY")
+        self.output_queue.put(face_detector.background)
+
+    def run(self):
+        while not self.stop: 
+            ret, frame = self.get_frame()
+            if ret: 
+                self.canny_frame(frame)
+
+#Global variable
+face_detector = FaceRecognitionSystem()
 
 if __name__ == "__main__":
-    face_recognition_system = FaceRecognitionSystem()
-    face_recognition_system.run()
+    # face_recognition_system = FaceRecognitionSystem()
+    # face_recognition_system.run()
+    frame_sum = 0
+    init_time = time.time()
+
+    def put_frame(frame):
+        if Input_Queue.full(): 
+            try:
+                Input_Queue.get_nowait()
+            except:
+                print("INPUT QUEUE IS EMPTY")
+        Input_Queue.put(frame)
+
+    def cap_read(cv2_cap):
+        ret, frame = cv2_cap.read()
+        if ret: 
+            put_frame(frame)
+        
+    # cap = cv2.VideoCapture(0)
+    cap = face_detector.cap
+
+    threadn = cv2.getNumberOfCPUs()
+
+    threaded_mode = True
+
+    process_list = []
+    Input_Queue = Queue(maxsize = 5)
+    Output_Queue = Queue(maxsize = 5)
+
+    for x in range((threadn -1)):    
+        canny_process = Canny_Process(frame_queue = Input_Queue,output_queue = Output_Queue)
+        canny_process.daemon = True
+        canny_process.start()
+        process_list.append(canny_process)
+
+    ch = cv2.waitKey(1)
+    cv2.namedWindow('Threaded Video', cv2.WINDOW_NORMAL)
+    while True:        
+        cap_read(cap)
+        
+        if not Output_Queue.empty():
+            result = Output_Queue.get()
+            cv2.imshow('Threaded Video', result)
+            ch = cv2.waitKey(5)
+
+        if ch == ord(' '):
+            threaded_mode = not threaded_mode
+        if ch == 27:
+            break
+    cv2.destroyAllWindows()
 
