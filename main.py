@@ -232,9 +232,6 @@ class FaceRecognitionSystem:
                             self.face_same_person = False
                             self.before_id = self.id
                 
-    def warring_notice(self):
-        if self.waring > 10:
-            print("Warring and send message to user")
 
     def unlock_door(self):
         # Replace with the actual IP address of the ESP32-CAM
