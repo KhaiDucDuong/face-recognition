@@ -434,13 +434,13 @@ if __name__ == "__main__":
         process_list.append(canny_process)
 
     ch = cv2.waitKey(1)
-    cv2.namedWindow('Threaded Video', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('Face Recognition', cv2.WINDOW_NORMAL)
     while True:        
         cap_read(cap)
         
         if not Output_Queue.empty():
             result = Output_Queue.get()
-            cv2.imshow('Threaded Video', result)
+            cv2.imshow('Face Recognition', result)
             ch = cv2.waitKey(5)
 
         if ch == ord(' '):
